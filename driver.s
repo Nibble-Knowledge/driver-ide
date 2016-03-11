@@ -213,9 +213,7 @@ INC16 IDE_DRIVER.RPtr1[1] INTO IDE_DRIVER.RPtr4[1]
 #Control flow - this loop only goes around 256 times
 
 INC8 IDE_DRIVER.LoopCount
-GETCARR ACC
-LOGNOT ACC
-JMP IDE_DRIVER.DoneReadLoop
+JMPEQ8 IDE_DRIVER.LoopCount IDE_DRIVER.ZeroByte TO IDE_DRIVER.DoneReadLoop
 
 LOD N_[0]
 JMP IDE_DRIVER.ReadLoop
@@ -320,9 +318,7 @@ MOV N_[0b0000] INTO STATUS_BUS
 #Control flow - this loop only goes around 256 times
 
 INC8 IDE_DRIVER.LoopCount
-GETCARR ACC
-LOGNOT ACC
-JMP IDE_DRIVER.DoneWriteLoop
+JMPEQ8 IDE_DRIVER.LoopCount IDE_DRIVER.ZeroByte TO IDE_DRIVER.DoneWriteLoop
 
 LOD N_[0]
 JMP IDE_DRIVER.WriteLoop
@@ -416,6 +412,7 @@ LOD N_[0]
 IDE_DRIVER.Exit:
 JMP 0x0000
 
+
 IDE_DRIVER.Cyl:		.data 4
 IDE_DRIVER.ZeroToWrite:	.data 1
 IDE_DRIVER.RegTable:	.data 5 0xABCDE
@@ -429,3 +426,4 @@ IDE_DRIVER.DataPtr:	.data 4
 IDE_DRIVER.LoopCount: 	.data 2 0x0
 IDE_DRIVER.LocationLoop:	.data 1 0x0
 IDE_DRIVER.Status:	.data 2
+IDE_DRIVER.ZeroByte:	.data 2 0x00
