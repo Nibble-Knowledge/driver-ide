@@ -4,32 +4,82 @@
 #	directory and data area
 
 
-#Extract values from BPB
+############		Extract values from BPB			############
+#total_sectors = (fat_boot->total_sectors_16 == 0)? fat_boot->total_sectors_32 : fat_boot->total_sectors_16;
 MOV FAT32.total_sec_32 INTO total_secs
 
+#fat_size = (fat_boot->table_size_16 == 0)? fat_boot_ext_32->table_size_16 : fat_boot->table_size_16;
 MOV FAT32.sec_p_table_32 INTO fat_size
 
 #(root_entry_cnt * 32) + (bytes_p_sec - 1) / bytes_p_sec = (0) + 511 / 512 round up = 1
-#SUB FAT32.bytes_p_sec N_[1] INTO root_dir_secs
-#DIV
 MOV N_[1] INTO root_dir_secs
 
-#FAT32.reserved_cnt + (FAT32.table_cnt * fat_size) + root_dir_secs
-MULT N_[2] fat_size INTO first_data_sec
+#first_data_sector  = FAT32.reserved_cnt + (FAT32.table_cnt * fat_size) + root_dir_secs
 ADD first_data_sec FAT32.reserved_cnt INTO first_data_sec
 ADD first_data_sec root_dir_secs INTO first_data_sec
+MOV FAT32.table_cnt INTO temp8[6]
+MOV32 temp8 INTO Mult32_Op1
+MOV32 fat_size INTO Mult32_Op2
+MOVADDR Return1 INTO Mult32_RetAddr[1]
+LOD N_[0]
+JMP Mult8_SignedEntry
+Return1:
+NOP 0
+ADD first_data_sec Mult32_Ans INTO first_data_Sec
 
+#first_fat_sector = fat_boot->reserved_sector_count
 MOV FAT32.reserved_cnt INTO first_fat_sec
 
-#FAT32.total_sec 
+#data_secs = total_sectors - (fat_boot->reserved_sector_count + (fat_boot->table_count * fat_size) + root_dir_sectors)
+MOV FAT32.table_cnt INTO temp8[6]
+MOV32 temp8 INTO Mult32_Op1
+MOV32 fat_size INTO Mult32_Op2
+MOVADDR Return2 INTO Mult32_RetAddr[1]
+LOD N_[0]
+JMP Mult8_SignedEntry
+Return2:
+NOP 0
+MOV Mult32_Ans INTO data_secs
+ADD data_secs Mult32_Ans INTO data_secs
+ADD data_secs FAT32.reserved_sec INTO data_secs
+ADD data_secs root_dir_secs INTO data_secs
+SUB total_secs data_secs INTO data_secs
+
+total_clusters = data_sectors / fat_boot->sectors_per_cluster;
+MOV total_secs INTO total_clusts
 
 
+############			Reading Directories			############
+#first_root_dir_sector = first_data_sector - root_dir_sectors;
+SUB	first_data_sec root_dir_secs INTO first_root_dir_sec
 
+#root_cluster_32 = extBS_32->root_cluster;
+MOV FAT32.root_clust INTO root_cluster_32
 
-#Reading Directories
+#first_sector_of_cluster = ((cluster - 2) * fat_boot->sectors_per_cluster) + first_data_sector;
+#Not sure what cluster this referes to yet
+MOV N_[0] INTO temp8
+SUB cluster N_[2] INTO temp8
+MOV FAT32.sec_p_clust INTO temp8_2
+MOV32 temp8 INTO Mult32_Op1
+MOV32 temp8_2 INTO Mult32_Op2
+MOVADDR Return3 INTO Mult32_RetAddr[1]
+LOD N_[0]
+JMP Mult8_SignedEntry
+Return3:
+NOP 0
+MOV Mult32_Ans INTO first_sec_of_clust
+ADD first_sec_of_clust first_data_sec INTO first_sec_of_clust
 
-
-
+#1.If the first byte of the entry is equal to 0 then there are no more files/directories in this directory. Yes, goto 2. No, finish.
+#2.If the first byte of the entry is equal to 0xE5 then the entry is unused. Yes, goto number 3. No, goto number 9
+#3.Is this entry a long file name entry? If the 11'th byte of the entry equals 0x0F, then it is a long file name entry. Otherwise, it is not. Yes, goto number 4. No, goto number 5.
+#4.Read the portion of the long filename into a temporary buffer. Goto 9.
+#5.Parse the data for this entry using the table from further up on this page. It would be a good idea to save the data for later. Possibly in a virtual file system structure. goto number 7
+#6.
+#7.
+#8.
+#9.
 
 
 ###########		Declarations 		############
@@ -113,8 +163,10 @@ first_data_sec			.data	8
 first_fat_sec			.data	8
 data_secs				.data	8
 total_clusts			.data	8
+fat_type 				.data	8	0xFAT32
 
 #Reading directories
+first_root_dir_sec		.data	8
 root_clust_32			.data	8
 first_sec_of_clust		.data	8
 
@@ -156,4 +208,6 @@ attr.archive			.data	2	0x20
 #Temporary values
 temp4					.data 	4
 temp8					.data	8
+temp8_2					.data	8
+
 
