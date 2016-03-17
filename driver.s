@@ -2,7 +2,7 @@
 IDE_DRIVER.Enter:
 
 #Subject to change if necessary
-MOV N_[1] INTO CHIP_SELECT
+MOV CS_HD INTO CHIP_SELECT
 
 #Arrange our location table
 MOV8 IDE_DRIVER.Cyl[2] INTO IDE_DRIVER.Cyl23
@@ -406,7 +406,7 @@ STR IDE_DRIVER.Status[1]
 MOV N_[0b0000] INTO STATUS_BUS
 
 IDE_DRIVER.Done:
-MOV N_[0] INTO CHIP_SELECT
+MOV N_[F] INTO CHIP_SELECT
 #Exit - this needs the return address to be supplied
 LOD N_[0]
 IDE_DRIVER.Exit:
