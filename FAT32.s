@@ -2,7 +2,7 @@
 #	Boot record
 #	File allocation table
 #	directory and data area
-
+#Info from: http://wiki.osdev.org/FAT32
 
 ############		Extract values from BPB			############
 #total_sectors = (fat_boot->total_sectors_16 == 0)? fat_boot->total_sectors_32 : fat_boot->total_sectors_16;
@@ -50,6 +50,8 @@ MOV total_secs INTO total_clusts
 
 
 ############			Reading Directories			############
+ReadStart:
+
 #first_root_dir_sector = first_data_sector - root_dir_sectors;
 SUB	first_data_sec root_dir_secs INTO first_root_dir_sec
 
@@ -76,11 +78,49 @@ ADD first_sec_of_clust first_data_sec INTO first_sec_of_clust
 #3.Is this entry a long file name entry? If the 11'th byte of the entry equals 0x0F, then it is a long file name entry. Otherwise, it is not. Yes, goto number 4. No, goto number 5.
 #4.Read the portion of the long filename into a temporary buffer. Goto 9.
 #5.Parse the data for this entry using the table from further up on this page. It would be a good idea to save the data for later. Possibly in a virtual file system structure. goto number 7
-#6.
-#7.
-#8.
-#9.
+#6.s there a long file name in the temporary buffer? Yes, goto number 8. No, goto 9
+#7.Apply the long file name to the entry that you just read and clear the temporary buffer. goto number 9
+#8.Increment pointers and/or counters and check the next entry. (goto number 1)
+#9.Doesnt actually say...
 
+#Think i need to set up a pointer or something for thispart, not sure 
+#1. if (firstbyte == 0) no more files
+MOV first_sec_of_clust[1] INTO temp2 
+JMPEQ  temp2 N_[0] TO Finish
+
+#2. 
+JMPEQ temp2 long_check TO Step9
+
+#3.
+JMPNEQ first_sec_of_clust[11] 0x0F TO Step5
+
+#4.
+#Read long portion in to buffer
+LOD N_[0]
+JMP Step9
+
+#5.
+Step5:
+#Parse data using data table
+
+#6.
+#check temp buf for long name
+
+#7.
+
+
+
+
+Step9:
+
+Finish:
+
+
+#Following cluster chains:
+#1.Extract the value from the FAT for the _current_ cluster. (Use the previous section on the File Allocation Table for details on how exactly to extract the value.) goto number 2
+#2.Is this cluster marked as the last cluster in the chain? (again, see the above section for more details) Yes, goto number 4. No, goto number 3
+#3.Read the cluster represented by the extracted value and return for more directory parsing.
+#4.The end of the cluster chain has been found. Our work here is finished.
 
 ###########		Declarations 		############
 #Boot Record
@@ -170,6 +210,8 @@ first_root_dir_sec		.data	8
 root_clust_32			.data	8
 first_sec_of_clust		.data	8
 
+long_check				.data	2	0xE5
+
 #Directory and Data area
 #OFFSET		LENGTH	(IN BYTES)
 #0			11		FIRST 8 CHARS ARE FILE NAME, LAST 3 EXTENSION
@@ -206,6 +248,7 @@ attr.subdirectory		.data	2	0x10
 attr.archive			.data	2	0x20
 
 #Temporary values
+temp2					.data	2
 temp4					.data 	4
 temp8					.data	8
 temp8_2					.data	8
