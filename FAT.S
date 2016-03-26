@@ -45,6 +45,7 @@ LOD N_[0]
 JMP FAT_DRIVER.CallIDE
 FAT_DRIVER.FuncReturn2:
 MOVADDR FAT_DRIVER.Scratch INTO FAT_DRIVER.IndexTemp[1]
+ADD16 FAT_DRIVER.IndexTemp[1] FAT_DRIVER.IndexAddr INTO FAT_DRIVER.IndexTemp[1]
 
 #Loop until we find the name match
 FAT_DRIVER.IndexLoop:
